@@ -14,6 +14,7 @@ package com.plupload {
 	import flash.events.EventDispatcher;
 	import flash.geom.Matrix;
 	import flash.net.FileReference;
+	import flash.fileSystem.FileStream;
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
 	import flash.events.HTTPStatusEvent;
@@ -43,9 +44,10 @@ package com.plupload {
 		// Private fields
 		private var _fileRef:FileReference, _cancelled:Boolean;
 		private var _uploadUrl:String, _uploadPath:String, _mimeType:String;
-		private var _id:String, _fileName:String, _size:uint, _imageData:ByteArray;
+		private var _id:String, _fileName:String, _size:Number, _imageData:ByteArray;
 		private var _multipart:Boolean, _fileDataName:String, _chunking:Boolean, _chunk:int, _chunks:int, _chunkSize:int, _postvars:Object;
 		private var _headers:Object, _settings:Object;
+		private var _stream:FileStream;
 
 		/**
 		 * Id property of file.
@@ -71,7 +73,7 @@ package com.plupload {
 		/**
 		 * File size property.
 		 */
-		public function get size():int {
+		public function get size():Number {
 			return this._size;
 		}
 
@@ -86,6 +88,7 @@ package com.plupload {
 			this._fileRef = file_ref;
 			this._size = file_ref.size;
 			this._fileName = file_ref.name;
+			this._stream = new FileStream();
 		}
 
 		/**
@@ -346,7 +349,8 @@ package com.plupload {
 			if (this._chunk >= this._chunks) {
 				// Clean up memory
 				if(this._fileRef.data) {
-					this._fileRef.data.clear();
+					//this._fileRef.data.clear();
+					this._stream.close();
 				}
 				this._fileRef = null;
 				this._imageData = null;
@@ -361,7 +365,8 @@ package com.plupload {
 			if (this._imageData != null)
 				fileData = this._imageData;
 			else
-				fileData = this._fileRef.data;
+				fileData = _stream.openAsync(this._fileRef, FileMode.READ)	
+				// fileData = this._fileRef.data;
 
 			fileData.readBytes(chunkData, 0, fileData.position + this._chunkSize > fileData.length ? fileData.length - fileData.position : this._chunkSize);
 
